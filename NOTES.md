@@ -12,6 +12,6 @@
 - Même cluster (remote déjà rempli) : `dvc pull` puis `dvc repro` (tout est « skipping »).
 - Autre cluster (remote vide) : `dvc repro` puis `dvc push` ; ne pas commiter le `dvc.lock`
   régénéré (seul le hash du modèle change).
-- Feast : `cd features && feast apply`, puis
+- - Feast : `mkdir -p features/data`, puis `cd features && feast apply`, puis
   `feast materialize-incremental "$(date -u +%Y-%m-%dT%H:%M:%S)"`.
 - Dataset : NLBSE'24 (issues GitHub), dépôt archivé ; le remote DVC sert de sauvegarde.
