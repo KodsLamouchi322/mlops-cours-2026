@@ -1,0 +1,33 @@
+schema: '2.0'
+stages:
+  download:
+    cmd: python -m src.download
+    deps:
+    - path: src/dataset_config.py
+      hash: md5
+      md5: fd4db5ecb2a17d01a7af1f4ec2915fbf
+      size: 8824
+    - path: src/download.py
+      hash: md5
+      md5: b0cca1679449c1ad7ac1a9273a1edf9e
+      size: 2487
+    params:
+      dataset.yaml:
+        features:
+          numeric:
+          - title_len
+          - body_len
+          - n_code_blocks
+          categorical:
+          - repo
+          text:
+          - text
+        raw_path: data/raw/dataset.csv
+        target:
+          column: issue_type
+          positive_class: question
+    outs:
+    - path: data/raw/dataset.csv
+      hash: md5
+      md5: 09f3d467cafaab3caf0075e7bbbc7115
+      size: 5066119
