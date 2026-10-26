@@ -63,3 +63,7 @@ rag/docs/*.pdf
 
 # --- Cours : PDF générés (make pdf) ---
 dist/
+
+# Feast (Lab 1) : registre et store en ligne locaux
+data/registry.db
+data/online_store.db
