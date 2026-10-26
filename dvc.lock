@@ -31,3 +31,127 @@ stages:
       hash: md5
       md5: 09f3d467cafaab3caf0075e7bbbc7115
       size: 5066119
+  prepare:
+    cmd: python -m src.prepare
+    deps:
+    - path: data/raw/dataset.csv
+      hash: md5
+      md5: 09f3d467cafaab3caf0075e7bbbc7115
+      size: 5066119
+    - path: src/dataset_config.py
+      hash: md5
+      md5: fd4db5ecb2a17d01a7af1f4ec2915fbf
+      size: 8824
+    - path: src/prepare.py
+      hash: md5
+      md5: 1cd928f6277e737479d2eb12fe328fba
+      size: 2130
+    params:
+      params.yaml:
+        prepare:
+          id_column: issue_id
+          event_timestamp: '2026-01-01T00:00:00+00:00'
+      dataset.yaml:
+        features:
+          numeric:
+          - title_len
+          - body_len
+          - n_code_blocks
+          categorical:
+          - repo
+          text:
+          - text
+        split:
+          test_size: 0.2
+          random_state: 42
+        target:
+          column: issue_type
+          positive_class: question
+    outs:
+    - path: data/processed/features.parquet
+      hash: md5
+      md5: ed7914f20f67d9b50203583dfad175c8
+      size: 2100363
+    - path: data/processed/test.csv
+      hash: md5
+      md5: d09b68c457d02fad0dbca1bcbfa28674
+      size: 1027517
+    - path: data/processed/train.csv
+      hash: md5
+      md5: a543e2265fd85524cf503d5e064ecf54
+      size: 4052567
+  train:
+    cmd: python -m src.train
+    deps:
+    - path: data/processed/test.csv
+      hash: md5
+      md5: d09b68c457d02fad0dbca1bcbfa28674
+      size: 1027517
+    - path: data/processed/train.csv
+      hash: md5
+      md5: a543e2265fd85524cf503d5e064ecf54
+      size: 4052567
+    - path: src/dataset_config.py
+      hash: md5
+      md5: fd4db5ecb2a17d01a7af1f4ec2915fbf
+      size: 8824
+    - path: src/train.py
+      hash: md5
+      md5: 24c4e6e2576f14882e35804e768a4860
+      size: 8681
+    params:
+      params.yaml:
+        train:
+          model: random_forest
+          C: 0.1
+          class_weight: balanced
+          n_estimators: 400
+          max_depth: none
+          learning_rate: 0.1
+          random_state: 42
+      dataset.yaml:
+        metrics:
+          primary: roc_auc
+          promotion_threshold: 0.75
+          cost_matrix:
+            false_negative: 2
+            false_positive: 1
+    outs:
+    - path: models/model
+      hash: md5
+      md5: 228eb6fdc16cbae8d87f7ab85104b2ad.dir
+      size: 33352607
+      nfiles: 5
+  evaluate:
+    cmd: python -m src.evaluate
+    deps:
+    - path: data/processed/test.csv
+      hash: md5
+      md5: d09b68c457d02fad0dbca1bcbfa28674
+      size: 1027517
+    - path: models/model
+      hash: md5
+      md5: 228eb6fdc16cbae8d87f7ab85104b2ad.dir
+      size: 33352607
+      nfiles: 5
+    - path: src/evaluate.py
+      hash: md5
+      md5: 8d64d35ed80879acb0732fa54c2d51f7
+      size: 1563
+    - path: src/train.py
+      hash: md5
+      md5: 24c4e6e2576f14882e35804e768a4860
+      size: 8681
+    params:
+      dataset.yaml:
+        metrics:
+          primary: roc_auc
+          promotion_threshold: 0.75
+          cost_matrix:
+            false_negative: 2
+            false_positive: 1
+    outs:
+    - path: reports/metrics.json
+      hash: md5
+      md5: d6e352397eef4c99b4b2254118c6b953
+      size: 282
