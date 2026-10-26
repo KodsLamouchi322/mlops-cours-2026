@@ -30,8 +30,8 @@ metrics:
   primary: roc_auc
   promotion_threshold: 0.75
   cost_matrix:
-    false_negative: 1
-    false_positive: 2
+    false_negative: 2
+    false_positive: 1
 
 split:
   test_size: 0.2
