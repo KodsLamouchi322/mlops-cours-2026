@@ -56,6 +56,7 @@ class DatasetConfig:
     positive_class: Any
     numeric: list[str]
     categorical: list[str]
+    text: list[str] = field(default_factory=list)
     sensitive: list[SensitiveAttribute] = field(default_factory=list)
     primary_metric: str = "roc_auc"
     promotion_threshold: float = 0.0
@@ -69,7 +70,7 @@ class DatasetConfig:
     @property
     def features(self) -> list[str]:
         """Toutes les variables explicatives, numériques puis catégorielles."""
-        return [*self.numeric, *self.categorical]
+        return [*self.numeric, *self.categorical, *self.text]
 
     @property
     def extra_sensitive(self) -> list[str]:
@@ -97,7 +98,10 @@ class DatasetConfig:
     def split_xy(self, df: pd.DataFrame) -> tuple[pd.DataFrame, pd.Series]:
         """Sépare features et cible encodée 0/1."""
         self.validate_columns(df)
-        return df[self.features].copy(), self.encode_target(df[self.target])
+        X = df[self.features].copy()
+        if self.text:
+            X[self.text] = X[self.text].fillna("").astype(str)
+        return X, self.encode_target(df[self.target])
 
     def sensitive_frame(self, df: pd.DataFrame) -> pd.DataFrame:
         """Un DataFrame avec un groupe par attribut sensible (pour Fairlearn)."""
@@ -107,6 +111,7 @@ class DatasetConfig:
     def build_preprocessor(self):
         """Prétraitement standard : imputation + standardisation / one-hot."""
         from sklearn.compose import ColumnTransformer
+        from sklearn.feature_extraction.text import TfidfVectorizer
         from sklearn.impute import SimpleImputer
         from sklearn.pipeline import Pipeline
         from sklearn.preprocessing import OneHotEncoder, StandardScaler
@@ -120,8 +125,16 @@ class DatasetConfig:
                 ("onehot", OneHotEncoder(handle_unknown="ignore", sparse_output=False)),
             ]
         )
+        text = [
+            (
+                f"text_{col}",
+                TfidfVectorizer(max_features=3000, ngram_range=(1, 2), min_df=2, sublinear_tf=True),
+                col,
+            )
+            for col in self.text
+        ]
         return ColumnTransformer(
-            [("num", numeric, self.numeric), ("cat", categorical, self.categorical)]
+            [("num", numeric, self.numeric), ("cat", categorical, self.categorical), *text]
         )
 
     def business_cost(self, y_true, y_pred) -> float:
@@ -175,6 +188,7 @@ def load_config(path: str | os.PathLike[str] = DEFAULT_PATH) -> DatasetConfig:
         positive_class=data["target"]["positive_class"],
         numeric=list(feats.get("numeric", []) or []),
         categorical=list(feats.get("categorical", []) or []),
+        text=list(feats.get("text", []) or []),
         sensitive=[SensitiveAttribute(**s) for s in data.get("sensitive", []) or []],
         primary_metric=metrics.get("primary", "roc_auc"),
         promotion_threshold=float(metrics.get("promotion_threshold", 0.0)),
@@ -184,7 +198,9 @@ def load_config(path: str | os.PathLike[str] = DEFAULT_PATH) -> DatasetConfig:
         random_state=int(split.get("random_state", 42)),
         raw=data,
     )
-    overlap = set(cfg.numeric) & set(cfg.categorical)
+    overlap = (set(cfg.numeric) & set(cfg.categorical)) | (
+        set(cfg.text) & set([*cfg.numeric, *cfg.categorical])
+    )
     if overlap:
         raise ValueError(f"Colonnes à la fois numériques et catégorielles : {overlap}")
     if cfg.target in cfg.features:

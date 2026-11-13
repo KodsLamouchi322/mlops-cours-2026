@@ -1,0 +1,153 @@
+schema: '2.0'
+stages:
+  download:
+    cmd: python -m src.download
+    deps:
+    - path: src/dataset_config.py
+      hash: md5
+      md5: fd4db5ecb2a17d01a7af1f4ec2915fbf
+      size: 8824
+    - path: src/download.py
+      hash: md5
+      md5: aaa744af6db1f05d948fd4e65dd14630
+      size: 2992
+    params:
+      dataset.yaml:
+        features:
+          numeric:
+          - prompt_len
+          - n_words
+          categorical: []
+          text:
+          - prompt
+        raw_path: data/raw/dataset.csv
+        target:
+          column: label
+          positive_class: attack
+    outs:
+    - path: data/raw/dataset.csv
+      hash: md5
+      md5: 473752976e15277574652c588f9f39e5
+      size: 2252904
+  prepare:
+    cmd: python -m src.prepare
+    deps:
+    - path: data/raw/dataset.csv
+      hash: md5
+      md5: 473752976e15277574652c588f9f39e5
+      size: 2252904
+    - path: src/dataset_config.py
+      hash: md5
+      md5: fd4db5ecb2a17d01a7af1f4ec2915fbf
+      size: 8824
+    - path: src/prepare.py
+      hash: md5
+      md5: 1cd928f6277e737479d2eb12fe328fba
+      size: 2130
+    params:
+      params.yaml:
+        prepare:
+          id_column: prompt_id
+          event_timestamp: '2026-01-01T00:00:00+00:00'
+      dataset.yaml:
+        features:
+          numeric:
+          - prompt_len
+          - n_words
+          categorical: []
+          text:
+          - prompt
+        split:
+          test_size: 0.2
+          random_state: 42
+        target:
+          column: label
+          positive_class: attack
+    outs:
+    - path: data/processed/features.parquet
+      hash: md5
+      md5: c5cb54de45f52742885d70ddf11712cb
+      size: 1241472
+    - path: data/processed/test.csv
+      hash: md5
+      md5: 9d06626d135f0847c4482f00a5fb95e6
+      size: 459295
+    - path: data/processed/train.csv
+      hash: md5
+      md5: 214d211d67540791865aeea26eef4a7f
+      size: 1805741
+  train:
+    cmd: python -m src.train
+    deps:
+    - path: data/processed/test.csv
+      hash: md5
+      md5: 9d06626d135f0847c4482f00a5fb95e6
+      size: 459295
+    - path: data/processed/train.csv
+      hash: md5
+      md5: 214d211d67540791865aeea26eef4a7f
+      size: 1805741
+    - path: src/dataset_config.py
+      hash: md5
+      md5: fd4db5ecb2a17d01a7af1f4ec2915fbf
+      size: 8824
+    - path: src/train.py
+      hash: md5
+      md5: 24c4e6e2576f14882e35804e768a4860
+      size: 8681
+    params:
+      params.yaml:
+        train:
+          model: random_forest
+          C: 0.1
+          class_weight: balanced
+          n_estimators: 400
+          max_depth: none
+          learning_rate: 0.1
+          random_state: 42
+      dataset.yaml:
+        metrics:
+          primary: roc_auc
+          promotion_threshold: 0.95
+          cost_matrix:
+            false_negative: 5
+            false_positive: 1
+    outs:
+    - path: models/model
+      hash: md5
+      md5: e04ac137dd3dcaadac18163d49cd9644.dir
+      size: 31358088
+      nfiles: 5
+  evaluate:
+    cmd: python -m src.evaluate
+    deps:
+    - path: data/processed/test.csv
+      hash: md5
+      md5: 9d06626d135f0847c4482f00a5fb95e6
+      size: 459295
+    - path: models/model
+      hash: md5
+      md5: e04ac137dd3dcaadac18163d49cd9644.dir
+      size: 31358088
+      nfiles: 5
+    - path: src/evaluate.py
+      hash: md5
+      md5: 8d64d35ed80879acb0732fa54c2d51f7
+      size: 1563
+    - path: src/train.py
+      hash: md5
+      md5: 24c4e6e2576f14882e35804e768a4860
+      size: 8681
+    params:
+      dataset.yaml:
+        metrics:
+          primary: roc_auc
+          promotion_threshold: 0.95
+          cost_matrix:
+            false_negative: 5
+            false_positive: 1
+    outs:
+    - path: reports/metrics.json
+      hash: md5
+      md5: efaa9e611c591783de4391bdaabb3140
+      size: 287
