@@ -1,5 +1,5 @@
 prepare:
-  id_column: issue_id
+  id_column: prompt_id
   event_timestamp: '2026-01-01T00:00:00+00:00'
 train:
   model: random_forest

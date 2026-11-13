@@ -1,68 +1,87 @@
-"""Télécharge le dataset NLBSE'24 (issues GitHub) et écrit data/raw/dataset.csv."""
+"""Télécharge deux jeux Hugging Face (jailbreak + prompt injection), les fusionne et écrit
+data/raw/dataset.csv.
 
+Chaque jeu est épinglé sur un commit précis : le téléchargement donne le même résultat dans
+six mois (sinon dvc.lock décrirait un fichier que personne ne peut régénérer).
+
+Colonnes produites : prompt, label (attack / benign), source, prompt_len, n_words.
+L'identifiant (prompt_id) est ajouté ensuite par src/prepare.py.
+"""
+
+import io
 from pathlib import Path
 
 import pandas as pd
+import requests
 
 from src.dataset_config import load_config
 
-OFFICIAL = "https://raw.githubusercontent.com/nlbse2024/issue-report-classification/main/data"
-FORK = "https://raw.githubusercontent.com/HarrisAamir/Issue-Report-Classification-NLBSE-2024/main"
+HF = "https://huggingface.co/datasets"
+JAILBREAK_SHA = "2f2ceeb39658696fd3f462403562b6eea5306287"
+DEEPSET_SHA = "4f61ecb038e9c3fb77e21034b22511b523772cdd"
+JAILBREAK_URL = (
+    f"{HF}/jackhhao/jailbreak-classification/resolve/{JAILBREAK_SHA}"
+    "/default/jailbreak_dataset_full.csv"
+)
+DEEPSET_URLS = [
+    f"{HF}/deepset/prompt-injections/resolve/{DEEPSET_SHA}/data/{name}"
+    for name in (
+        "train-00000-of-00001-9564e8b05b4757ab.parquet",
+        "test-00000-of-00001-701d16158af87368.parquet",
+    )
+]
 
-RENAMES = {
-    "repository": "repo",
-    "repository_name": "repo",
-    "label": "issue_type",
-    "labels": "issue_type",
-    "type": "issue_type",
-    "issue_title": "title",
-    "issue_body": "body",
-}
 
-
-def read_split(split: str) -> pd.DataFrame | None:
-    """Lit issues_<split>.csv : dépôt officiel d'abord, puis le dépôt de secours."""
-    for base in (OFFICIAL, FORK):
-        url = f"{base}/issues_{split}.csv"
-        try:
-            df = pd.read_csv(url)
-            print(f"  {split}: {len(df)} issues <- {url}")
-            return df
-        except Exception as exc:  # 404, réseau...
-            print(f"  {split}: échec ({type(exc).__name__}) <- {url}")
-    return None
+def fetch(url: str) -> io.BytesIO:
+    resp = requests.get(url, timeout=120)
+    resp.raise_for_status()
+    print(f"  {len(resp.content) // 1024} Ko <- {url}")
+    return io.BytesIO(resp.content)
 
 
 def main() -> int:
     cfg = load_config()
-    parts = [d for d in (read_split("train"), read_split("test")) if d is not None]
-    if not parts:
-        raise SystemExit("Aucun fichier téléchargé : vérifie ta connexion et les URL.")
 
-    df = pd.concat(parts, ignore_index=True)
-    df.columns = [str(c).strip().lower() for c in df.columns]
-    df = df.rename(columns=RENAMES)
-    df["issue_type"] = df["issue_type"].replace({"enhancement": "feature"})
+    jb = pd.read_csv(fetch(JAILBREAK_URL))
+    jb = pd.DataFrame(
+        {
+            "prompt": jb["prompt"],
+            "label": jb["type"].map({"jailbreak": "attack", "benign": "benign"}),
+            "source": "jailbreak",
+        }
+    )
+    ds = pd.concat([pd.read_parquet(fetch(u)) for u in DEEPSET_URLS], ignore_index=True)
+    ds = pd.DataFrame(
+        {
+            "prompt": ds["text"],
+            "label": ds["label"].map({1: "attack", 0: "benign"}),
+            "source": "deepset",
+        }
+    )
 
-    missing = [c for c in ("title", "body", "repo", "issue_type") if c not in df.columns]
-    if missing:
-        raise SystemExit(f"Colonnes manquantes : {missing}. Colonnes trouvées : {list(df.columns)}")
+    df = pd.concat([jb, ds], ignore_index=True)
+    if df["label"].isna().any():
+        raise SystemExit("Étiquette inconnue : vérifier les valeurs de type / label.")
 
-    title = df["title"].fillna("").astype(str)
-    body = df["body"].fillna("").astype(str)
-    df["text"] = title + "\n\n" + body.str[:5000]
-    df["title_len"] = title.str.len().astype("float64")
-    df["body_len"] = body.str.len().astype("float64")
-    df["n_code_blocks"] = (body.str.count("```") // 2).astype("float64")
+    # Nettoyage AVANT le split : un texte présent deux fois se retrouverait dans train
+    # et dans test, et le ROC AUC serait gonflé.
+    df["prompt"] = df["prompt"].fillna("").astype(str).str.strip()
+    df = df[df["prompt"] != ""]
+    n_before = len(df)
+    df = df.drop_duplicates(subset="prompt", keep="first").reset_index(drop=True)
+    print(f"  {n_before - len(df)} doublon(s) retiré(s)")
+
+    df["prompt_len"] = df["prompt"].str.len().astype("float64")
+    df["n_words"] = df["prompt"].str.split().str.len().astype("float64")
 
     cfg.validate_columns(df)
     out = Path(cfg.raw_path)
     out.parent.mkdir(parents=True, exist_ok=True)
     df[cfg.columns].to_csv(out, index=False)
 
-    print(df["issue_type"].value_counts().to_string())
+    print(df.groupby(["source", "label"]).size().to_string())
     share = (df[cfg.target] == cfg.positive_class).mean()
-    print(f"{len(df)} issues -> {out} · classe '{cfg.positive_class}' : {share:.0%}")
+    print(f"{len(df)} prompts -> {out} · classe '{cfg.positive_class}' : {share:.0%}")
     return 0
 
 

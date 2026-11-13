@@ -9,35 +9,33 @@ stages:
       size: 8824
     - path: src/download.py
       hash: md5
-      md5: b0cca1679449c1ad7ac1a9273a1edf9e
-      size: 2487
+      md5: aaa744af6db1f05d948fd4e65dd14630
+      size: 2992
     params:
       dataset.yaml:
         features:
           numeric:
-          - title_len
-          - body_len
-          - n_code_blocks
-          categorical:
-          - repo
+          - prompt_len
+          - n_words
+          categorical: []
           text:
-          - text
+          - prompt
         raw_path: data/raw/dataset.csv
         target:
-          column: issue_type
-          positive_class: question
+          column: label
+          positive_class: attack
     outs:
     - path: data/raw/dataset.csv
       hash: md5
-      md5: 09f3d467cafaab3caf0075e7bbbc7115
-      size: 5066119
+      md5: 473752976e15277574652c588f9f39e5
+      size: 2252904
   prepare:
     cmd: python -m src.prepare
     deps:
     - path: data/raw/dataset.csv
       hash: md5
-      md5: 09f3d467cafaab3caf0075e7bbbc7115
-      size: 5066119
+      md5: 473752976e15277574652c588f9f39e5
+      size: 2252904
     - path: src/dataset_config.py
       hash: md5
       md5: fd4db5ecb2a17d01a7af1f4ec2915fbf
@@ -49,48 +47,46 @@ stages:
     params:
       params.yaml:
         prepare:
-          id_column: issue_id
+          id_column: prompt_id
           event_timestamp: '2026-01-01T00:00:00+00:00'
       dataset.yaml:
         features:
           numeric:
-          - title_len
-          - body_len
-          - n_code_blocks
-          categorical:
-          - repo
+          - prompt_len
+          - n_words
+          categorical: []
           text:
-          - text
+          - prompt
         split:
           test_size: 0.2
           random_state: 42
         target:
-          column: issue_type
-          positive_class: question
+          column: label
+          positive_class: attack
     outs:
     - path: data/processed/features.parquet
       hash: md5
-      md5: ed7914f20f67d9b50203583dfad175c8
-      size: 2100363
+      md5: c5cb54de45f52742885d70ddf11712cb
+      size: 1241472
     - path: data/processed/test.csv
       hash: md5
-      md5: d09b68c457d02fad0dbca1bcbfa28674
-      size: 1027517
+      md5: 9d06626d135f0847c4482f00a5fb95e6
+      size: 459295
     - path: data/processed/train.csv
       hash: md5
-      md5: a543e2265fd85524cf503d5e064ecf54
-      size: 4052567
+      md5: 214d211d67540791865aeea26eef4a7f
+      size: 1805741
   train:
     cmd: python -m src.train
     deps:
     - path: data/processed/test.csv
       hash: md5
-      md5: d09b68c457d02fad0dbca1bcbfa28674
-      size: 1027517
+      md5: 9d06626d135f0847c4482f00a5fb95e6
+      size: 459295
     - path: data/processed/train.csv
       hash: md5
-      md5: a543e2265fd85524cf503d5e064ecf54
-      size: 4052567
+      md5: 214d211d67540791865aeea26eef4a7f
+      size: 1805741
     - path: src/dataset_config.py
       hash: md5
       md5: fd4db5ecb2a17d01a7af1f4ec2915fbf
@@ -112,27 +108,27 @@ stages:
       dataset.yaml:
         metrics:
           primary: roc_auc
-          promotion_threshold: 0.75
+          promotion_threshold: 0.95
           cost_matrix:
-            false_negative: 2
+            false_negative: 5
             false_positive: 1
     outs:
     - path: models/model
       hash: md5
-      md5: 228eb6fdc16cbae8d87f7ab85104b2ad.dir
-      size: 33352607
+      md5: e04ac137dd3dcaadac18163d49cd9644.dir
+      size: 31358088
       nfiles: 5
   evaluate:
     cmd: python -m src.evaluate
     deps:
     - path: data/processed/test.csv
       hash: md5
-      md5: d09b68c457d02fad0dbca1bcbfa28674
-      size: 1027517
+      md5: 9d06626d135f0847c4482f00a5fb95e6
+      size: 459295
     - path: models/model
       hash: md5
-      md5: 228eb6fdc16cbae8d87f7ab85104b2ad.dir
-      size: 33352607
+      md5: e04ac137dd3dcaadac18163d49cd9644.dir
+      size: 31358088
       nfiles: 5
     - path: src/evaluate.py
       hash: md5
@@ -146,12 +142,12 @@ stages:
       dataset.yaml:
         metrics:
           primary: roc_auc
-          promotion_threshold: 0.75
+          promotion_threshold: 0.95
           cost_matrix:
-            false_negative: 2
+            false_negative: 5
             false_positive: 1
     outs:
     - path: reports/metrics.json
       hash: md5
-      md5: d6e352397eef4c99b4b2254118c6b953
-      size: 282
+      md5: efaa9e611c591783de4391bdaabb3140
+      size: 287

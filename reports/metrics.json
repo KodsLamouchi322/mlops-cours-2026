@@ -1,17 +1,17 @@
 {
-  "roc_auc": 0.908,
-  "average_precision": 0.8025,
-  "f1": 0.7736,
-  "precision": 0.7321,
-  "recall": 0.82,
-  "accuracy": 0.84,
-  "business_cost": 132.0,
-  "decision_threshold": 0.5,
+  "roc_auc": 0.987,
+  "average_precision": 0.9821,
+  "f1": 0.8778,
+  "precision": 0.8073,
+  "recall": 0.9617,
+  "accuracy": 0.9072,
+  "business_cost": 77.0,
+  "decision_threshold": 0.2736,
   "confusion": {
-    "tn": 340,
-    "fp": 60,
-    "fn": 36,
-    "tp": 164
+    "tn": 303,
+    "fp": 42,
+    "fn": 7,
+    "tp": 176
   },
-  "n_test": 600
+  "n_test": 528
 }

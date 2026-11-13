@@ -1,36 +1,32 @@
-name: github-issues
-description: Issues GitHub (React, TensorFlow, VS Code, Bitcoin, OpenCV) étiquetées bug / feature / question (NLBSE'24)
+name: prompt-injection
+description: Prompts étiquetés attaque (prompt injection ou jailbreak) / normal, fusion de deux jeux Hugging Face
 source:
-  url: https://github.com/nlbse2024/issue-report-classification
-  license: voir le fichier LICENSE du dépôt (à vérifier)
-  citation: >-
-    Kallis, R., Colavito, G., Al-Kaswan, A., Pascarella, L., Chaparro, O., Rani, P. (2024).
-    The NLBSE'24 Tool Competition. NLBSE'24.
+  url: https://huggingface.co/datasets/jackhhao/jailbreak-classification et https://huggingface.co/datasets/deepset/prompt-injections
+  license: apache-2.0 pour les deux (d'après leurs pages Hugging Face)
 
 raw_path: data/raw/dataset.csv
 
 target:
-  column: issue_type
-  positive_class: question
+  column: label
+  positive_class: attack
 
 features:
   numeric:
-    - title_len
-    - body_len
-    - n_code_blocks
-  categorical:
-    - repo
+    - prompt_len
+    - n_words
+  categorical: []
   text:
-    - text
+    - prompt
 
+# Mesurée, jamais apprise : permet de comparer les scores par source
 sensitive:
-  - column: repo
+  - column: source
 
 metrics:
   primary: roc_auc
-  promotion_threshold: 0.75
+  promotion_threshold: 0.95   # entre les forêts peu profondes (0.92) et les meilleurs modèles (0.98)
   cost_matrix:
-    false_negative: 2
+    false_negative: 5   # laisser passer une attaque coûte 5 fois plus
     false_positive: 1
 
 split:
