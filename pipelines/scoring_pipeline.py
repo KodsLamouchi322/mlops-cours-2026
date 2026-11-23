@@ -94,7 +94,7 @@ def scoring_pipeline(
     train_task.after(drift_task)  # gate : pas d'entraînement sur des données qui dérivent
     # Une limit seule vaut aussi request : on demande peu, on autorise plus
     train_task.set_cpu_request("500m").set_cpu_limit("2")
-    train_task.set_memory_request("512Mi").set_memory_limit("2Gi")
+    train_task.set_memory_request("512Mi").set_memory_limit("3Gi")
     kubernetes.set_timeout(train_task, 1800)
     # Toujours ré-entraîner : chaque run KFP doit produire un nouveau run MLflow
     train_task.set_caching_options(enable_caching=False)
