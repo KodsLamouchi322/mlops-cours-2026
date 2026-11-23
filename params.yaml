@@ -9,3 +9,15 @@ train:
   max_depth: none
   learning_rate: 0.1
   random_state: 42
+
+# Lab 3 : détection de drift (src/detect_drift.py, pipelines KFP)
+drift:
+  ks_alpha: 0.05        # significativité : p-value du test (KS numérique, chi2 catégorielle)
+  psi_threshold: 0.25   # magnitude : PSI à partir duquel le déplacement compte
+  drift_share: 0.10     # gate : le lot dérive dès que 10 % des colonnes dérivent
+  # Scénario simulé (src/simulate.py, pipelines/drift_demo.py), propre au dataset :
+  # une nouvelle vague de prompts plus longs et avec plus de mots (attaques plus élaborées).
+  simulation:
+    scale:    # facteurs multiplicatifs
+      prompt_len: 2.5
+      n_words: 2.5

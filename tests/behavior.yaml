@@ -1,0 +1,29 @@
+# Attentes comportementales du modèle, PROPRES AU DATASET, lues par
+# tests/test_model_behavior.py. Changer de dataset = réécrire ce fichier.
+# Dataset : détection de prompt injection (prompt_len, n_words, prompt -> label: attack/normal)
+
+# Invariance : changer cet attribut ne devrait pas changer la décision (aucun
+# effet attendu sur le risque). Tolérance : part maximale de décisions qui
+# changent, parmi les demandes dont on a modifié la valeur.
+invariance:
+  - column: n_words     # le nombre de mots seul ne détermine pas le caractère injecteur
+    max_flip_rate: 0.10  # tolérance plus large : n_words est corrélé à prompt_len
+
+# Directionnels : augmenter la variable (x factor) ne doit pas déplacer le
+# risque prédit (probabilité de la classe positive) dans le mauvais sens.
+directional:
+  - column: prompt_len   # un prompt beaucoup plus long augmente le risque d'attaque
+    factor: 3.0
+    expect: increase
+  - column: n_words      # plus de mots : même tendance
+    factor: 3.0
+    expect: increase
+
+# Une variation de probabilité plus petite que `tolerance` est ignorée (bruit des
+# modèles à arbres) ; au plus `max_violation_rate` des demandes peuvent violer l'attente.
+tolerance: 0.05
+max_violation_rate: 0.10
+
+# Sous-groupes sensibles de dataset.yaml : chaque groupe d'au moins
+# `min_group_size` demandes doit lui aussi atteindre promotion_threshold.
+min_group_size: 30
