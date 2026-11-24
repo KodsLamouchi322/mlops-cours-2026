@@ -1,0 +1,28 @@
+# Invariance : changer la forme du texte sans changer son sens ne doit pas changer la décision
+# (un attaquant joue sur la casse et les espaces pour contourner un filtre). `transform` est
+# défini dans tests/test_model_behavior.py. Tolérance : part maximale de décisions qui changent.
+invariance:
+  - column: prompt
+    transform: uppercase
+    max_flip_rate: 0.02
+  - column: prompt
+    transform: trailing_space
+    max_flip_rate: 0.02
+# Directionnels : augmenter la variable (x factor) ne doit pas déplacer le
+# risque prédit (probabilité de la classe positive) dans le mauvais sens.
+directional:
+  - column: prompt_len   # un prompt beaucoup plus long augmente le risque d'attaque
+    factor: 3.0
+    expect: increase
+  - column: n_words      # plus de mots : même tendance
+    factor: 3.0
+    expect: increase
+
+# Une variation de probabilité plus petite que `tolerance` est ignorée (bruit des
+# modèles à arbres) ; au plus `max_violation_rate` des demandes peuvent violer l'attente.
+tolerance: 0.05
+max_violation_rate: 0.10
+
+# Sous-groupes sensibles de dataset.yaml : chaque groupe d'au moins
+# `min_group_size` demandes doit lui aussi atteindre promotion_threshold.
+min_group_size: 30
