@@ -88,18 +88,34 @@ def test_performance_par_sous_groupe(model, data, attribute):
 
 
 # --- Invariance (INV) -----------------------------------------------------------------------
-@pytest.mark.parametrize("case", EXPECT.get("invariance") or [], ids=lambda c: c["column"])
+# Pour une colonne de texte, « une autre valeur observée » n'a pas de sens : on applique une
+# transformation qui ne devrait pas changer la décision (casse, espace final).
+TRANSFORMS = {
+    "uppercase": lambda s: s.str.upper(),
+    "trailing_space": lambda s: s + " ",
+}
+
+
+def _invariance_id(case: dict) -> str:
+    return case["column"] + (f"-{case['transform']}" if "transform" in case else "")
+
+
+@pytest.mark.parametrize("case", EXPECT.get("invariance") or [], ids=_invariance_id)
 def test_invariance(model, data, case):
     X, _, _ = data
     col, decision = case["column"], risk(model, X) >= model[1]
-    flips = changed = 0
-    for value in X[col].unique():  # chaque demande reçoit chacune des autres valeurs
-        modified = X.assign(**{col: value})
-        mask = (X[col] != value).to_numpy()
-        flips += int(((risk(model, modified) >= model[1]) != decision)[mask].sum())
-        changed += int(mask.sum())
-    rate = flips / changed
-    assert rate <= case["max_flip_rate"], f"{rate:.1%} des décisions changent avec {col}"
+    if "transform" in case:
+        modified = X.assign(**{col: TRANSFORMS[case["transform"]](X[col].astype(str))})
+        rate = float(((risk(model, modified) >= model[1]) != decision).mean())
+    else:
+        flips = changed = 0
+        for value in X[col].unique():  # chaque demande reçoit chacune des autres valeurs
+            modified = X.assign(**{col: value})
+            mask = (X[col] != value).to_numpy()
+            flips += int(((risk(model, modified) >= model[1]) != decision)[mask].sum())
+            changed += int(mask.sum())
+        rate = flips / changed
+    assert rate <= case["max_flip_rate"], f"{rate:.1%} des décisions changent avec {_invariance_id(case)}"
 
 
 # --- Directionnels (DIR) --------------------------------------------------------------------

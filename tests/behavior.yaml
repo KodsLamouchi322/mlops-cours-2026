@@ -1,4 +1,13 @@
-invariance: []
+# Invariance : changer la forme du texte sans changer son sens ne doit pas changer la décision
+# (un attaquant joue sur la casse et les espaces pour contourner un filtre). `transform` est
+# défini dans tests/test_model_behavior.py. Tolérance : part maximale de décisions qui changent.
+invariance:
+  - column: prompt
+    transform: uppercase
+    max_flip_rate: 0.02
+  - column: prompt
+    transform: trailing_space
+    max_flip_rate: 0.02
 # Directionnels : augmenter la variable (x factor) ne doit pas déplacer le
 # risque prédit (probabilité de la classe positive) dans le mauvais sens.
 directional:
