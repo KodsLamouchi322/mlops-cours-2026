@@ -1,0 +1,31 @@
+{
+  "dataset": "prompt-injection",
+  "model_name": "scoring-model",
+  "model_alias": "champion",
+  "model_version": "10",
+  "run_id": "2d0a41cfd6cf465f80fca191b3ded70c",
+  "target": "label",
+  "positive_class": "attack",
+  "threshold": 0.2736,
+  "threshold_source": "param decision_threshold du run",
+  "features": {
+    "numeric": [
+      "prompt_len",
+      "n_words"
+    ],
+    "categorical": [],
+    "text": [
+      "prompt"
+    ]
+  },
+  "onnx_features": [
+    "prompt_len",
+    "n_words",
+    "prompt"
+  ],
+  "onnx_opset": 17,
+  "onnx_sha256": "b86172378079d350631c499bccab937675976862ce5d929d95a1471e210b4d1b",
+  "exported_at": "2026-11-24T08:50:04+00:00",
+  "serving_format": "skops",
+  "model_sha256": "cc3dc71f6d378e32c45aa38167ae72ce6b0006afe413d3cea852bb05dc12855e"
+}
