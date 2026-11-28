@@ -1,0 +1,13 @@
+# Dépendances de l'image de serving UNIQUEMENT. Le pipeline scikit-learn (TF-IDF + random
+# forest) est servi tel quel : la conversion ONNX du TF-IDF ne prédit pas comme scikit-learn
+# (tokenisation différente). Versions IDENTIQUES à celles de l'entraînement (uv.lock) : un
+# modèle chargé avec une autre version de scikit-learn n'est pas fiable.
+fastapi==0.142.2
+pydantic==2.13.5
+uvicorn==0.54.0
+scikit-learn==1.9.1
+skops==0.16.0
+numpy==2.5.3
+pandas==2.3.3
+scipy==1.18.1
+pyyaml==6.0.3

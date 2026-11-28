@@ -1,0 +1,10 @@
+# Baseline naïve : on exclut les dossiers volumineux ou problématiques.
+.venv/
+.git/
+data/
+local_outputs/
+infra/
+rag/
+.env
+*.pyc
+__pycache__/
